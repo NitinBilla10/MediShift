@@ -55,10 +55,26 @@ A comprehensive, production-grade full-stack platform built to seamlessly manage
 - Python 3.10+
 - A PostgreSQL Database (Local or Supabase)
 
-### 1. Database Setup
+### 1. Running with Docker (Easiest Method)
+If you have Docker and Docker Compose installed, you can spin up the entire application (Frontend, Backend, and Database) with a single command!
+
+```bash
+# From the root of the project:
+docker compose up --build
+```
+This will automatically:
+- Start a local PostgreSQL database
+- Run all the database migrations
+- Seed the database with the default Manager and Staff accounts
+- Start the Python Backend API on `http://localhost:8000`
+- Start the Next.js Frontend on `http://localhost:3000`
+
+### 2. Running Locally (Without Docker)
+
+#### Database Setup
 Create a PostgreSQL database. Ensure you use an async-compatible connection string in your `.env` files (e.g., prefixing with `postgresql+asyncpg://`). If using Supabase PgBouncer, ensure statement caching is disabled.
 
-### 2. Backend Setup
+#### Backend Setup
 ```bash
 cd backend
 python -m venv venv

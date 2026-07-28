@@ -1,103 +1,42 @@
-# Architecture Decisions
+# Architecture & Design Decisions
 
-## Backend Architecture
-- **Framework**: FastAPI was chosen for its excellent performance, built-in async support, and automatic OpenAPI generation.
-- **ORM**: SQLAlchemy 2.0 with `asyncpg` was selected to ensure high concurrency handling and strong typing for database models.
-- **Database**: PostgreSQL is used to enforce strong relational constraints and data integrity.
+This document explains the choices made when building the MediShift platform, written in plain, simple English so anyone can understand how the system works behind the scenes.
 
-## Concurrency and Shift Claiming Strategy
-- **Problem**: Multiple staff members could attempt to claim the same shift role simultaneously, leading to race conditions where a shift becomes overbooked.
-- **Solution**: The application uses explicit row-level locking via SQL transactions (`SELECT ... FOR UPDATE` via SQLAlchemy's `with_for_update()`). When a claim request is received, the backend:
-  1. Starts a database transaction.
-  2. Locks the specific `shifts` row.
-  3. Recalculates the current number of claims for the requested role.
-  4. Validates that the role is not fully staffed and that the user does not have an overlapping shift.
-  5. Inserts the claim and commits the transaction.
-- **Tradeoff**: Row-level locking slightly reduces throughput on a single shift record, but guarantees 100% data integrity without needing complex distributed locks (e.g., Redis).
+## 1. How We Handle Double-Booking (Concurrency)
+**The Problem:** Imagine two nurses see the exact same open shift and click "Claim" at the exact same millisecond. If the server isn't careful, it might assign both of them to the same slot, leaving the shift overstaffed.
 
-## CSV Import Strategy
-- **Normalization**: Roles are normalized (e.g., `DR`, `Doctor` -> `doctor`) to maintain consistent requirement records.
-- **Deduplication / Merging**: 
-  - If a CSV contains multiple rows for the same shift (same date, start time, and end time), the importer groups them into a single `Shift` record.
-  - If the same role is listed multiple times for the same shift, their counts are added together.
-  - All merging actions and rejections (e.g., invalid date formats) are recorded in the `import_errors` table and linked to an `ImportReport` for the manager to review.
+**The Solution:** We use a technique called "Row-Level Locking." When a staff member tries to claim a shift, the database essentially puts a temporary "Do Not Disturb" sign on that specific shift. 
+1. The server stops anyone else from touching that shift for a fraction of a second.
+2. It counts how many people are currently assigned.
+3. If there is still space, it assigns the staff member.
+4. It removes the "Do Not Disturb" sign.
 
-## Shift Editing Strategy (Future Implementation Note)
-- **Behavior**: When a manager edits a shift's times or role requirements, all existing claims for that shift must be re-validated.
-- **Process**:
-  1. If the required count for a role is reduced below the current number of claims, the most recent claims (LIFO) should be removed until the constraint is met.
-  2. If the shift time changes, the system must check if the new time causes overlaps for any currently assigned staff. If an overlap occurs, their claim is removed.
-  3. All removed claims must trigger a notification (or a database record) explaining the reason for removal to the manager and the affected staff.
+If a second nurse tries to claim it during that fraction of a second, they simply wait in line. By the time it's their turn, the server sees the shift is full and politely tells them it's no longer available. No double-booking, ever!
 
-## Frontend State Management
-- **Local State**: Zustand is used for authentication state (`useAuthStore`) because it provides a simple, boilerplate-free way to manage the JWT token and user profile globally without needing context providers wrapping the entire app.
-- **Server State**: TanStack Query (React Query) is used for all data fetching (shifts, imports) to handle caching, loading states, and automatic refetching upon mutations (e.g., claiming a shift).
+## 2. Making the Database Faster (Connection Pooling)
+**The Problem:** Every time the app needs to talk to the database, it takes time to "pick up the phone and dial." If hundreds of people use the app at once, the database gets overwhelmed answering all those calls.
 
-## User Creation Strategy
+**The Solution:** We use a tool provided by Supabase called a "Connection Pooler" (PgBouncer). Think of it like a dedicated receptionist that holds a few phone lines open all the time. When the app needs data, it just uses an already-open line. We also tweaked the backend code to disable "statement caching," which makes our code fully compatible with this smart receptionist system without crashing.
 
-There are two primary ways a staff account can be created in the system.
+## 3. How We Process CSV Uploads
+Managers can upload Excel-like CSV files to create shifts or add staff in bulk. We built the system to be very forgiving and smart:
 
-### 1. Staff Imported from CSV
-When the application is seeded (or when a manager uploads a staff CSV), the importer creates staff accounts automatically.
+- **Staff CSVs:**
+  - **Email Typos:** If a manager writes `john(at)clinic.com` or `john (AT) clinic.com` instead of using the `@` symbol, the system automatically detects this and fixes it during upload.
+  - **Default Passwords:** To make onboarding easy, all imported staff are automatically given the password `password123`. We added a friendly popup warning the manager about this before they upload the file.
+  
+- **Shift CSVs:**
+  - **Combining Duplicates:** If a manager uploads two rows for the exact same shift (e.g., one row asking for a Doctor, another row asking for a Nurse at the exact same time), the system merges them into a single shift that asks for both.
+  - **Error Tracking:** If a row has a bad date or a missing time, it doesn't crash the whole upload. The system skips the bad row, imports the good ones, and gives the manager a clean report card showing exactly what failed and why.
 
-**Flow:**
-```mermaid
-graph TD
-    A[staff.csv] --> B[Import Service]
-    B --> C[Normalize & Validate]
-    C --> D[Create Staff User]
-    D --> E[Password = "password123"]
-    E --> F[Hash with bcrypt]
-    F --> G[(Save to Database)]
-```
+## 4. Why We Chose Our Tech Stack
+- **Next.js & React (Frontend):** We chose this because it allows us to build a lightning-fast, highly interactive user interface. When a user clicks a button, the app reacts instantly.
+- **FastAPI (Backend):** We chose this Python framework because it's built for speed. It handles thousands of requests seamlessly and is very easy to read and maintain.
+- **PostgreSQL (Database):** We chose this because it is the gold standard for reliable, relational data. It is excellent at enforcing rules (like "a shift cannot end before it starts").
 
-**Default values:**
-| Field | Value |
-| :--- | :--- |
-| **Role** | staff |
-| **Profession** | From CSV |
-| **Password** | `password123` (hashed before storing) |
-| **Status** | Active |
+## 5. Staff Accounts & Passwords
+There are two ways staff get added to the system:
+1. **Bulk CSV Import:** The system creates the accounts and gives everyone the default `password123`.
+2. **Manual Creation:** The manager clicks "Create Staff" in the dashboard, types in the staff member's details, and manually types in a starting password for them.
 
-> [!IMPORTANT]
-> The password is never stored as plain text. Only the bcrypt hash of "password123" is saved to the database.
-
-### 2. Manager Creates Staff Manually
-The manager can add new staff members directly from the application via the Staff Management dashboard.
-
-**Flow:**
-```mermaid
-graph TD
-    A[Manager] --> B[Staff Management Tab]
-    B --> C[Create Staff]
-    C --> D[Enter Details]
-    D --> E[Choose Password]
-    E --> F[(Create User)]
-```
-
-**Form Requirements:**
-- Name *
-- Email *
-- Profession * (Doctor / Nurse / Receptionist)
-- Password *
-- Confirm Password *
-
-Unlike imported users, the manager chooses the initial password manually.
-
-### Manager Permissions
-The manager is empowered to:
-- Create staff
-- Set the initial password
-- Edit name, email, and profession
-- Remove / Deactivate staff
-
-> [!NOTE]
-> The manager cannot view existing passwords, because only password hashes are stored in the database.
-
-### Why this is a good design
-- ✅ **Satisfies Requirements:** Fulfills the assignment's requirement to seed staff logins effectively.
-- ✅ **Immediate Usability:** Makes imported accounts immediately usable with a known, communicated default password.
-- ✅ **Manager Flexibility:** Allows managers to create new staff accounts on the fly without editing and uploading CSV files.
-- ✅ **Unified Data Model:** Uses a single `users` table for both imported and manually created staff, keeping relational logic clean.
-- ✅ **Security:** Stores all passwords securely as bcrypt hashes.
-- ✅ **Pragmatic Simplicity:** Keeps the system simple, cohesive, and highly practical for a production-ready application.
+**Security Note:** Even though the manager might set the password initially, the database *never* saves the actual password. It scrambles the password into a secret code (called a "hash"). If a hacker ever broke into the database, they would just see random gibberish, not the actual passwords.
