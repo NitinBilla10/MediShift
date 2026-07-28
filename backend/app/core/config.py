@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/clinic_scheduler"
     
     # CORS Origins
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "https://medi-shift-nine.vercel.app"]
     
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
 
