@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { Shift } from '@/types';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ interface ShiftCardProps {
 export default function ShiftCard({ shift, view, onEdit, onDelete }: ShiftCardProps) {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const [errorKey, setErrorKey] = useState(0);
   const start = new Date(shift.start_time);
   const end = new Date(shift.end_time);
   
@@ -178,7 +180,7 @@ export default function ShiftCard({ shift, view, onEdit, onDelete }: ShiftCardPr
                     
                     return (
                       <Select 
-                        key={`${idx}-${claim?.user_id || 'unassigned'}`}
+                        key={`${idx}-${claim?.user_id || 'unassigned'}-${errorKey}`}
                         value={claim?.user_id || undefined}
                         onValueChange={async (val) => {
                           if (val === "unassign") {
@@ -189,6 +191,7 @@ export default function ShiftCard({ shift, view, onEdit, onDelete }: ShiftCardPr
                                 toast.success('Staff unassigned');
                               } catch (err: any) {
                                 toast.error(err.response?.data?.detail || 'Failed to unassign');
+                                setErrorKey(k => k + 1);
                               }
                             }
                             return;
@@ -203,6 +206,7 @@ export default function ShiftCard({ shift, view, onEdit, onDelete }: ShiftCardPr
                             }
                           } catch (err: any) {
                             // Mutation handles its own errors
+                            setErrorKey(k => k + 1);
                           }
                         }}
                         disabled={claimMutation.isPending}
