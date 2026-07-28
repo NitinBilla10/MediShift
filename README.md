@@ -1,66 +1,103 @@
-# Clinic Shift Scheduler
+# MediShift
 
-A production-grade full-stack application built to manage clinic staff shifts, handle complex concurrency (race-condition free claims), and bulk import shifts via CSV.
+A comprehensive, production-grade full-stack platform built to seamlessly manage clinic staff shifts, handle complex scheduling concurrency, and bulk-import shifts and staff records via CSV. 
 
-## Features
-- **Role-based Authentication**: JWT based auth with `manager` and `staff` roles.
-- **Coverage Dashboard**: Visualize shifts and required roles for any week.
-- **Transaction-Safe Claiming**: SQL Row-Level Locking ensures no double-booking, even if multiple staff claim simultaneously.
-- **Smart CSV Import**: Robust parsing, deduplication, role normalization, and detailed import reporting.
-- **Modern UI**: Built with Next.js 15, TailwindCSS, and shadcn/ui.
+### 🌐 Live Demo
+- **Frontend (Vercel)**: [https://medi-shift-nine.vercel.app](https://medi-shift-nine.vercel.app)
+- **Backend API Docs (Render)**: [https://medishift.onrender.com/api/v1/docs](https://medishift.onrender.com/api/v1/docs)
 
-## Tech Stack
-- **Frontend**: Next.js (App Router), React, TypeScript, TailwindCSS, TanStack Query, Zustand, shadcn/ui.
-- **Backend**: FastAPI, Python, SQLAlchemy (asyncpg), Alembic, Pydantic, Passlib.
-- **Database**: PostgreSQL
-- **Deployment**: Docker Compose
+**Demo Credentials**:
+- **Manager**: `manager@clinic.com` | `password123`
+- **Staff (Doctor)**: `staff1@clinic.com` | `password123`
+- **Staff (Nurse)**: `staff2@clinic.com` | `password123`
 
-## Folder Structure
+---
+
+## ✨ Features
+- **Role-based Dashboards**: Dedicated UI and permissions for `manager` and `staff` roles.
+- **Smart Shift Coverage Dashboard**: Managers can visually track daily and weekly shift coverage statuses (Unstaffed, Partially Staffed, Fully Staffed).
+- **Transaction-Safe Claiming**: SQL Row-Level Locking ensures no double-booking or race conditions, even if multiple staff members try to claim a shift simultaneously.
+- **Advanced CSV Imports**:
+  - **Staff Import**: Bulk import staff accounts with robust parsing (handles variants like `(at)` in emails) and automated default passwords.
+  - **Shift Import**: Bulk upload shift requirements with automated deduplication and smart requirements merging.
+- **Modern & Responsive UI**: Clean, glassmorphism-inspired aesthetic built with Next.js 15, Tailwind CSS, and Radix UI primitives.
+
+## 🛠️ Tech Stack
+### Frontend
+- **Framework**: Next.js 15 (App Router), React, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui, Lucide Icons
+- **State Management**: TanStack React Query (Server State), Zustand (Client Auth State)
+- **Deployment**: Vercel
+
+### Backend
+- **Framework**: FastAPI, Python 3
+- **ORM & Database**: SQLAlchemy 2.0 (with `asyncpg`), PostgreSQL (Supabase Connection Pooler)
+- **Auth**: JWT (OAuth2 Password Bearer), Passlib
+- **Migrations**: Alembic
+- **Deployment**: Render Web Service
+
+## 📂 Project Structure
 - `backend/`: FastAPI application code.
-  - `app/api/`: REST Endpoints.
-  - `app/services/`: Core business logic and transaction safety.
-  - `app/models/`: SQLAlchemy DB models.
-  - `app/importer/`: CSV parsing logic.
+  - `app/api/api_v1/`: REST API Endpoints & Routes.
+  - `app/services/`: Core business logic, transactional locks, and shift manipulation.
+  - `app/models/`: SQLAlchemy DB models (Users, Shifts, Claims).
+  - `app/importer/`: CSV parser engines for bulk data ingestion.
 - `frontend/`: Next.js application code.
-  - `src/app/`: App router pages.
-  - `src/components/`: Reusable shadcn and UI components.
-  - `src/features/`: Complex domain components (e.g. Dashboards).
-  - `src/store/`: Zustand global state.
+  - `src/app/`: App router page definitions.
+  - `src/components/`: Reusable interface components and UI dialogs.
+  - `src/features/`: Complex domain components (e.g., Manager vs Staff Dashboards).
+  - `src/store/`: Zustand global authentication state.
 
-## Setup & Running Locally (With Docker)
+## 🚀 Running Locally
 
-Ensure you have Docker and Docker Compose installed.
+### Prerequisites
+- Node.js v18+
+- Python 3.10+
+- A PostgreSQL Database (Local or Supabase)
 
-1. Clone the repository and navigate to the project root.
-2. Run the full stack using Docker:
-   ```bash
-   docker compose up --build
-   ```
-3. The database will be automatically created, migrated, and seeded.
+### 1. Database Setup
+Create a PostgreSQL database. Ensure you use an async-compatible connection string in your `.env` files (e.g., prefixing with `postgresql+asyncpg://`). If using Supabase PgBouncer, ensure statement caching is disabled.
 
-## Setup & Running Locally (Without Docker)
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
 
-If you prefer to run the applications natively:
+# Activate virtual environment
+# Windows: .\venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
 
-1. **Start Database**: You must have a PostgreSQL instance running. The default connection string in `backend/app/core/config.py` expects PostgreSQL on `127.0.0.1:5433` with user `postgres` and password `postgres`.
-2. **Backend**:
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate # or .\venv\Scripts\activate on Windows
-   pip install -r requirements.txt
-   uvicorn app.main:app --reload
-   ```
-3. **Frontend**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+pip install -r requirements.txt
 
-### Seed Credentials
-- **Manager**: `manager@clinic.com` (Password: `password123`)
-- **Staff**: Use any email from `staff.csv` (e.g. `marcus.whitfield@clinicmail.test`) with password `password123`.
+# Set your environment variable
+export DATABASE_URL="postgresql+asyncpg://user:password@localhost:5432/dbname"
 
-## Architecture & Decisions
-For a deep dive into concurrency handling, the CSV import strategy, and shift editing behavior, see [DECISIONS.md](./DECISIONS.md).
+# Run migrations to build the tables
+alembic upgrade head
+
+# Start the server
+uvicorn app.main:app --reload --port 8000
+```
+*The API will be available at `http://localhost:8000`. API Documentation is at `http://localhost:8000/api/v1/docs`.*
+
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+
+# Create a .env.local file with your local backend URL:
+# NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+
+npm run dev
+```
+*The web app will be available at `http://localhost:3000`.*
+
+---
+
+## 🔒 Concurrency & Safety Decisions
+The backend is explicitly designed to handle high-concurrency environments:
+- **Pessimistic Locking**: When a staff member attempts to claim a role, the backend uses `with_for_update()` to lock the shift row. If two nurses try to claim the final nurse slot at the exact same millisecond, the database forces sequential processing. The second request will correctly evaluate the updated requirement counts and throw a `400 Bad Request` instead of overbooking the shift.
+- **Connection Pooling**: Natively optimized for Supabase's PgBouncer using `statement_cache_size=0`.
+
+---
+*Built with ❤️ for efficient healthcare staffing.*
