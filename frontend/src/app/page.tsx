@@ -42,7 +42,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary">
             <Stethoscope className="h-6 w-6" />
-            <span className="font-bold tracking-tight text-lg text-foreground">ClinicShift</span>
+            <span className="font-bold tracking-tight text-lg text-foreground">MediShift</span>
           </div>
           <Button variant="ghost" onClick={() => router.push('/login')} className="font-medium">
             Sign In
@@ -78,7 +78,7 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
           >
-            Say goodbye to messy spreadsheets. ClinicShift empowers your managers to organize schedules, and lets doctors and nurses claim shifts seamlessly in real-time.
+            Say goodbye to messy spreadsheets. MediShift empowers your managers to organize schedules, and lets doctors and nurses claim shifts seamlessly in real-time.
           </motion.p>
           
           <motion.div 
@@ -167,7 +167,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border mt-auto py-8 text-center text-sm text-muted-foreground">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <span>&copy; {new Date().getFullYear()} ClinicShift. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} MediShift. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <span className="hover:text-foreground cursor-pointer transition-colors">Privacy</span>
             <span className="hover:text-foreground cursor-pointer transition-colors">Terms</span>

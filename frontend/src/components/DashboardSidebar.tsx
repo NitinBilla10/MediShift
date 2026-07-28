@@ -28,7 +28,7 @@ export default function DashboardSidebar() {
     <div className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
       <div className="flex h-16 items-center px-6 border-b border-gray-200">
         <Stethoscope className="w-6 h-6 text-primary mr-2" />
-        <span className="font-semibold text-lg tracking-tight">ClinicShift</span>
+        <span className="font-semibold text-lg tracking-tight">MediShift</span>
       </div>
       
       <div className="flex-1 overflow-y-auto py-4">
