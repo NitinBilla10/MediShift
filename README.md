@@ -24,7 +24,7 @@ A comprehensive, production-grade full-stack platform built to seamlessly manage
 
 ## 🛠️ Tech Stack
 ### Frontend
-- **Framework**: Next.js 15 (App Router), React, TypeScript
+- **Framework**: Next.js 16 (App Router), React, TypeScript
 - **Styling**: Tailwind CSS, shadcn/ui, Lucide Icons
 - **State Management**: TanStack React Query (Server State), Zustand (Client Auth State)
 - **Deployment**: Vercel
