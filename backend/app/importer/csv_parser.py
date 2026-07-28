@@ -227,8 +227,8 @@ async def process_staff_csv_import(db: AsyncSession, csv_text: str, manager_id: 
         original_row_str = str(row)
         
         email = row.get("email", "").strip()
-        if "(at)" in email:
-            email = email.replace("(at)", "@")
+        import re
+        email = re.sub(r'(?i)\s*\(\s*at\s*\)\s*', '@', email)
             
         if not email:
             db.add(ImportError(report_id=report.id, row_number=row_number, original_row=original_row_str, problem="Missing email address", action_taken="Rejected"))
