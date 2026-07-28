@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+alembic
+pydantic
+pydantic-settings
+asyncpg
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt
+python-multipart
+pytest
+pytest-asyncio
+httpx
+python-dateutil
+pandas # For robust CSV parsing
