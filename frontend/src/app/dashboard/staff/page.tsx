@@ -102,6 +102,10 @@ export default function StaffManagementPage() {
               onChange={async (e) => {
                 if (e.target.files && e.target.files.length > 0) {
                   const f = e.target.files[0];
+                  if (!confirm('Note: All imported staff will be assigned the default password "password123". Do you want to proceed?')) {
+                    e.target.value = '';
+                    return;
+                  }
                   const formData = new FormData();
                   formData.append('file', f);
                   try {
